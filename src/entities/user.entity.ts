@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Unique, JoinTable, ManyToMany } from 'typeorm';
+import { ChatRoom } from './chatRoom.entity';
 
 @Entity()
 @Unique(['email'])
@@ -27,4 +28,8 @@ export class User {
 
   @Column({ nullable: true })
   profileImagePath?: string;
+
+  @ManyToMany(() => ChatRoom, chatRoom => chatRoom.users)
+  @JoinTable()
+  chatRooms: ChatRoom[];
 }

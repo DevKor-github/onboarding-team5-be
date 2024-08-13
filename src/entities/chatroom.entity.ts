@@ -1,23 +1,20 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToMany } from 'typeorm';
+import { User } from './user.entity';
 
 @Entity()
-export class Chatroom {
-    @PrimaryGeneratedColumn()
-    id: number;
-    
-    @Column({ unique: true })
-    title: string;
-    
-    @Column()
-    genre: string;
-    
-    @Column()
-    keywords: string;
-    
-    @Column()
-    mainImagePath: string;
-    
-    @UpdateDateColumn()
-    lastChattedTime: Date; 
-}
+export class ChatRoom {
+  @PrimaryGeneratedColumn()
+  id: number;
 
+  @Column()
+  name: string;
+  
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @ManyToMany(() => User, user => user.chatRooms)
+  users: User[];
+}

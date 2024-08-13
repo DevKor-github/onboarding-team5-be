@@ -5,8 +5,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { ChatroomModule } from './chatroom/chatroom.module';
 import { UserModule } from './user/user.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -25,7 +25,7 @@ import { UserModule } from './user/user.module';
         secret: process.env.JWT_SECRET,
         signOptions: {expiresIn: process.env.JWT_EXPIRES_IN}
       })
-    ,AuthModule, ChatroomModule, UserModule],
+    ,AuthModule, UserModule, ChatModule],
   controllers: [AppController],
   providers: [AppService],
 })

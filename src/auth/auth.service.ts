@@ -19,10 +19,10 @@ export class AuthService {
         const { name, nickname, email, password } = signupDto;  
         if (!name || !nickname || !email || !password) throw new ConflictException('작성하지 않은 항목이 있습니다.');
     
-        const userByEmail = await this.userRepository.findOneBy({ email });
+        const userByEmail = await this.userRepository.findOne({ where: { email } });
         if (userByEmail) throw new ConflictException('이미 사용중인 이메일 입니다.');
     
-        const userByNickname = await this.userRepository.findOneBy({ nickname });
+        const userByNickname = await this.userRepository.findOne({ where: { nickname } });
         if (userByNickname) throw new ConflictException('이미 사용중인 닉네임 입니다.');
     
         const hashedPassword = await hash(password, 10);
@@ -39,13 +39,13 @@ export class AuthService {
       async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
         const { email, password } = loginDto;
 
-        const user = await this.userRepository.findOneBy({ email });
+        const user = await this.userRepository.findOne({ where: {email} });
         if (!user) throw new NotFoundException('존재하지 않는 사용자 입니다.');
     
         const isPasswordValid = await compare(password, user.password);
         if (!isPasswordValid)  throw new UnauthorizedException('이메일 혹은 비밀번호가 틀렸습니다.');
     
-        // JWT 인증 
+        // JWT 인증
 
         const payload = { sub: user.id, email: user.email };
         const accessToken = this.jwtService.sign(payload, {
@@ -61,25 +61,13 @@ export class AuthService {
         return { accessToken, refreshToken };
       }
 
-      async updateProfile(id: number, introduction: string, genre: string, profileImagePath: string): Promise<void>{
-        const user = await this.userRepository.findOneBy({ id: id });
-
-        if (!user) throw new NotFoundException('존재하지 않는 사용자 입니다.');
-
-        user.introduction = introduction ?? user.introduction;
-        user.genre = genre ?? user.genre;
-        user.profileImagePath = profileImagePath ?? user.profileImagePath;
-
-        await this.userRepository.save(user);
-      }
-
       async refreshToken(oldRefreshToken: string): Promise<{ accessToken: string }> {
         try {
           const decoded = this.jwtService.verify(oldRefreshToken, {
             secret: process.env.JWT_REFRESH_SECRET,
           });
     
-          const user = await this.userRepository.findOneBy({ id: decoded.sub });
+          const user = await this.userRepository.findOne({ where: {id: decoded.sub} });
           if (!user) throw new UnauthorizedException('Invalid refresh token');
     
           const payload = { sub: user.id, email: user.email };
