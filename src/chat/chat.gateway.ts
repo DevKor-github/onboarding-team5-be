@@ -1,7 +1,6 @@
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
-import { Socket } from 'socket.io';
-import { Server } from 'mysql2/typings/mysql/lib/Server';
+import { Socket, Server } from 'socket.io';
 
 @WebSocketGateway()
 export class ChatGateway {
