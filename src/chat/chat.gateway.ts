@@ -1,9 +1,11 @@
-import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Socket, Server } from 'socket.io';
 import { ChatRoom } from 'src/entities/chatRoom.entity';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { User } from 'src/entities/user.entity';
+import { CreateChatRoomDto } from './dtos/createChatRoom.dto';
+import { ChatService } from './chat.service';
 
 @WebSocketGateway()
 export class ChatGateway {
@@ -14,7 +16,8 @@ export class ChatGateway {
     @InjectRepository(ChatRoom)
     private chatRoomRepository: Repository<ChatRoom>,
     @InjectRepository(User)
-    private userRepository: Repository<User>
+    private userRepository: Repository<User>,
+    private readonly chatService: ChatService
   ) {}
 
   afterInit(server: Server) {
@@ -27,5 +30,13 @@ export class ChatGateway {
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
+  }
+
+  @SubscribeMessage('createChatRoom')
+  async createChatRoom(@MessageBody() createChatRoomDto: CreateChatRoomDto, @ConnectedSocket() client: Socket) {
+    const chatRoom = await this.chatService.createChatRoom(createChatRoomDto);
+    client.emit('chatRoomCreated', chatRoom);
+
+    return chatRoom;
   }
 }

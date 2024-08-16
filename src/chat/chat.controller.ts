@@ -10,12 +10,11 @@ export class ChatController {
   @UseGuards(AuthGuard('jwt-access'))
   @Post('create')
   async createChatRoom(@Request() req, @Body() createChatRoomDto: CreateChatRoomDto) {
-    const id = req.user.id;
     const chatRoom = await this.chatSerivce.createChatRoom(createChatRoomDto);
 
     return chatRoom;
   }
-
+  
   @UseGuards(AuthGuard('jwt-access'))
   @Get('list')
   async getChatRoomsForUser(@Request() req) {

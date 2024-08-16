@@ -3,8 +3,6 @@ import { AuthService } from './auth.service';
 import { SignupDto } from './dtos/signup.dto';
 import { LoginDto } from './dtos/login.dto';
 import { RefreshTokenDto } from './dtos/refreshToken.dto';
-import { UpdateProfileDto } from '../user/dtos/updateProfile.dto';
-import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {

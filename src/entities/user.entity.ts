@@ -29,7 +29,7 @@ export class User {
   @Column({ nullable: true })
   profileImagePath?: string;
 
-  @ManyToMany(() => ChatRoom, chatRoom => chatRoom.users)
+  @ManyToMany(() => ChatRoom, chatRoom => chatRoom.users, { eager: true })
   @JoinTable()
   chatRooms: ChatRoom[];
 }
