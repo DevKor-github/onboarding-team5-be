@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToMany } from 'typeorm';
 import { User } from './user.entity';
+import { Message } from './message.entity';
 
 @Entity()
 export class ChatRoom {
@@ -14,6 +15,9 @@ export class ChatRoom {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Message, (message) => message.chatRoom)
+  messages: Message[];
 
   @ManyToMany(() => User, user => user.chatRooms)
   users: User[];

@@ -1,7 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsEmail, IsOptional } from 'class-validator';
 
-export class GetUserProfileDto {
+export class GetMyProfileDto {
+
+  @IsString()
+  @ApiProperty({ example: "홍길동" })
+  name: string;
+
+  @IsEmail()
+  @ApiProperty({ example: 'abcdefg@ddddddd.com' })
+  email: string;
+
+  @IsString()
+  @ApiProperty({ example: "root00))" })
+  password: string;
+
   @IsOptional()
   @IsString()
   @ApiProperty({ example: "안녕하세요" })

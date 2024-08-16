@@ -36,7 +36,7 @@ export class AuthService {
         await this.userRepository.save(newUser);
       }
     
-      async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
+      async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken: string; myId: number; }> {
         const { email, password } = loginDto;
 
         const user = await this.userRepository.findOne({ where: {email} });
@@ -58,7 +58,9 @@ export class AuthService {
           expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
         });
 
-        return { accessToken, refreshToken };
+        const myId = user.id;
+
+        return { accessToken, refreshToken, myId };
       }
 
       async refreshToken(oldRefreshToken: string): Promise<{ accessToken: string }> {

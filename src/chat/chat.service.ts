@@ -4,6 +4,7 @@ import { ChatRoom } from 'src/entities/chatRoom.entity';
 import { User } from 'src/entities/user.entity';
 import { Repository, In } from 'typeorm';
 import { CreateChatRoomDto } from './dtos/createChatRoom.dto';
+import { Message } from 'src/entities/message.entity';
 
 @Injectable()
 export class ChatService {
@@ -11,7 +12,9 @@ export class ChatService {
       @InjectRepository(ChatRoom)
       private chatRoomRepository: Repository<ChatRoom>,
       @InjectRepository(User)
-      private userRepository: Repository<User>
+      private userRepository: Repository<User>,
+      @InjectRepository(Message)
+      private messageRepository: Repository<Message>
   ) {}
 
   async createChatRoom(createChatRoomDto: CreateChatRoomDto): Promise<ChatRoom> {
@@ -32,11 +35,30 @@ export class ChatService {
       return this.chatRoomRepository.save(chatRoom);
   }
 
+  async saveMessage(chatRoomId: number, senderId: string, message: string): Promise<Message> {
+    const chatRoom = await this.chatRoomRepository.findOne({ where: { id: chatRoomId }});
+    const sender = await this.userRepository.findOne({ where: {  }});
+
+    const newMessage = this.messageRepository.create({ chatRoom, sender, content: message, createdAt: new Date() });
+    return await this.messageRepository.save(newMessage);
+  }
+
+  /*
+  async getChatHistory(chatRoomId: number): Promise<Message[]> {
+    return this.messageRepository.find({
+      where: { chatRoom: chatRoomId },
+      order: { createdAt: 'ASC' },
+      relations: ['sender']
+    });
+  }
+    */
+  
+
   async getChatRoomsForUser(id: number): Promise<any[]> {
     return this.chatRoomRepository.createQueryBuilder('chatRoom')
       .select(['chatRoom.id', 'chatRoom.name', 'chatRoom.updatedAt'])
       .innerJoin('chatRoom.users', 'user')
       .where('user.id = :id', { id: id })
       .getMany();
-  }
+  }  
 }
