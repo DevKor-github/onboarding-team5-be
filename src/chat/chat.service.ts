@@ -18,11 +18,11 @@ export class ChatService {
       const { name, userIds } = createChatRoomDto;
       const users = await this.userRepository.findBy({ id: In(userIds) });
 
-      if (users.length < 2) {
-        throw new Error('채팅방 최소 인원은 2명 입니다.');
-      }
       if (users.length !== userIds.length) {
         throw new Error('존재하지 않는 사용자는 채팅방에 초대할 수 없습니다.');
+      }
+      if (users.length < 2) {
+        throw new Error('채팅방 최소 인원은 2명 입니다.');
       }
 
       const chatRoom = this.chatRoomRepository.create({

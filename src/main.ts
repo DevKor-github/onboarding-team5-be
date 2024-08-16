@@ -7,7 +7,7 @@ async function bootstrap() {
 
     // CORS 설정
     app.enableCors({
-      origin: '*',
+      origin: '*', // Allow all origins (adjust as needed for security)
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       allowedHeaders: 'Content-Type, Authorization',
     });

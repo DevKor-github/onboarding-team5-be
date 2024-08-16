@@ -6,6 +6,7 @@ import { Repository, In } from 'typeorm';
 import { User } from 'src/entities/user.entity';
 import { CreateChatRoomDto } from './dtos/createChatRoom.dto';
 import { ChatService } from './chat.service';
+import { Docs } from 'src/decorators/docs/chat.decorator';
 
 @WebSocketGateway()
 export class ChatGateway {
@@ -32,7 +33,8 @@ export class ChatGateway {
     console.log(`Client disconnected: ${client.id}`);
   }
 
-  @SubscribeMessage('createChatRoom')
+  @SubscribeMessage('create-chat-room')
+  @Docs('create-chat-room')
   async createChatRoom(@MessageBody() createChatRoomDto: CreateChatRoomDto, @ConnectedSocket() client: Socket) {
     const chatRoom = await this.chatService.createChatRoom(createChatRoomDto);
     client.emit('chatRoomCreated', chatRoom);
