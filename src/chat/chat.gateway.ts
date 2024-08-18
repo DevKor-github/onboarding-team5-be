@@ -2,12 +2,13 @@ import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Socket, Server } from 'socket.io';
 import { ChatRoom } from 'src/entities/chatRoom.entity';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from 'src/entities/user.entity';
 import { CreateChatRoomDto } from './dtos/createChatRoom.dto';
 import { ChatService } from './chat.service';
 import { Docs } from 'src/decorators/docs/chat.decorator';
-import { SendMessageDto } from 'src/user/dtos/sendMessage.dto';
+import { SendMessageDto } from './dtos/sendMessage.dto';
+import { UserSocket } from 'src/entities/userSocket.entity';
 
 @WebSocketGateway()
 export class ChatGateway {
@@ -19,14 +20,19 @@ export class ChatGateway {
     private chatRoomRepository: Repository<ChatRoom>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(UserSocket)
+    private userSocketRepository: Repository<UserSocket>,
     private readonly chatService: ChatService
-  ) {}
+  ) { }
 
   afterInit(server: Server) {
+    this.server.emit("serverInit", { message: `server 시작` });
     console.log("서버 시작")
   }
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
+    await this.chatService.userSocketConnection(client);
+    client.emit('welcomeMessage', { message: `Client connected: ${client.id}` });
     console.log(`Client connected: ${client.id}`);
   }
 
@@ -44,11 +50,21 @@ export class ChatGateway {
   }
 
   @SubscribeMessage('sendMessage')
-  async sendMessage(
-    @MessageBody() sendMessageDto: SendMessageDto, @ConnectedSocket() client: Socket) {
-    const { chatRoomId, message } = sendMessageDto;
-    const saveMessage = await this.chatService.saveMessage(chatRoomId, client.id, message);
+  @Docs('sendMessage')
+  async sendMessage(@MessageBody() sendMessageDto: SendMessageDto, @ConnectedSocket() client: Socket) {
+    const saveMessage = await this.chatService.saveMessage(sendMessageDto);
 
-    this.server.to(`room-${chatRoomId}`).emit('messageReceived', saveMessage);
+    this.server.to(`room-${sendMessageDto.chatRoomId}`).emit('messageReceived', saveMessage);
+  }
+
+  @SubscribeMessage('getChatRoomUserInfo')
+  @Docs('getChatRoomUserInfo')
+  async getChatRoomUserInfo(@MessageBody() chatRoomId: number, @ConnectedSocket() client: Socket): Promise<void> {
+    try {
+      const users = await this.chatService.getUsersInChatRoom(chatRoomId);
+      this.server.to(`room-${chatRoomId}`).emit('usersInChatRoom', users);
+    } catch (error) {
+      client.emit('error', { message: error.message });
+    }
   }
 }

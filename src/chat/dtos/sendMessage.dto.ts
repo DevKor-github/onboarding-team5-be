@@ -1,19 +1,17 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNumber, IsString } from "class-validator";
 
-{ ApiProperty }
-
 export class SendMessageDto {
   
   @IsNumber()
-  @ApiProperty()
+  @ApiProperty({ example: 3 })
   chatRoomId: number;
 
   @IsNumber()
-  @ApiProperty()
+  @ApiProperty({ example: 3 })
   senderId: number;
 
   @IsString()
-  @ApiProperty()
-  content: string;
+  @ApiProperty({ example: "안녕하세요" })
+  message: string;
 }

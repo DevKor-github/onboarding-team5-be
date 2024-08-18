@@ -1,12 +1,13 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { CreateChatRoomDto } from 'src/chat/dtos/createChatRoom.dto';
-import { SendMessageDto } from 'src/user/dtos/sendMessage.dto';
+import { SendMessageDto } from 'src/chat/dtos/sendMessage.dto';
 
 type EndPoints =
   | 'list'
   | 'createChatRoom'
-  | 'sendMessage';
+  | 'sendMessage'
+  | 'getChatRoomUserInfo';
 
 export function Docs(endPoint: EndPoints) {
   switch (endPoint) {
@@ -24,6 +25,11 @@ export function Docs(endPoint: EndPoints) {
       ApiBody({
         type: SendMessageDto
       })
-    )
+    );
+    case 'getChatRoomUserInfo': return applyDecorators(
+      ApiOperation({
+        description: "채팅방 아이디를 query를 통해 보내면 채팅방 참여 중인 유저 정보 return"
+      })
+    );
   }
 }
