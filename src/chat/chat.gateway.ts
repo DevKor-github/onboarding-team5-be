@@ -9,6 +9,7 @@ import { ChatService } from './chat.service';
 import { Docs } from 'src/decorators/docs/chat.decorator';
 import { SendMessageDto } from './dtos/sendMessage.dto';
 import { UserSocket } from 'src/entities/userSocket.entity';
+import { GetChatRoomUserInfoDto } from './dtos/getChatRoomUserInfo.dto';
 
 @WebSocketGateway()
 export class ChatGateway {
@@ -59,10 +60,11 @@ export class ChatGateway {
 
   @SubscribeMessage('getChatRoomUserInfo')
   @Docs('getChatRoomUserInfo')
-  async getChatRoomUserInfo(@MessageBody() chatRoomId: number, @ConnectedSocket() client: Socket): Promise<void> {
+  async getChatRoomUserInfo(@MessageBody() getChatRoomUserInfoDto: GetChatRoomUserInfoDto, @ConnectedSocket() client: Socket): Promise<void> {
     try {
-      const users = await this.chatService.getUsersInChatRoom(chatRoomId);
-      this.server.to(`room-${chatRoomId}`).emit('usersInChatRoom', users);
+      const users = await this.chatService.getUsersInChatRoom(getChatRoomUserInfoDto.chatRoomId);
+      console.log(users);
+      this.server.to(`room-${getChatRoomUserInfoDto.chatRoomId}`).emit('usersInChatRoom', users);
     } catch (error) {
       client.emit('error', { message: error.message });
     }
