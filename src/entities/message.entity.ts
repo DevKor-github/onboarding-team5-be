@@ -5,8 +5,8 @@ import {
     ManyToOne,
     CreateDateColumn,
   } from 'typeorm';
-  import { User } from './user.entity'; // Adjust the path according to your project structure
-  import { ChatRoom } from './chatRoom.entity'; // Adjust the path according to your project structure
+  import { User } from './user.entity';
+  import { ChatRoom } from './chatRoom.entity';
   
   @Entity()
   export class Message {

@@ -8,19 +8,20 @@ import { Message } from 'src/entities/message.entity';
 import { SendMessageDto } from './dtos/sendMessage.dto';
 import { Socket } from 'socket.io';
 import { UserSocket } from 'src/entities/userSocket.entity';
+import { LeaveChatRoomDto } from './dtos/leaveChatRoom.dto';
 
 @Injectable()
 export class ChatService {
   constructor(
-      @InjectRepository(ChatRoom)
-      private chatRoomRepository: Repository<ChatRoom>,
-      @InjectRepository(User)
-      private userRepository: Repository<User>,
-      @InjectRepository(Message)
-      private messageRepository: Repository<Message>,
-      @InjectRepository(UserSocket)
-      private userSocketRepository: Repository<UserSocket>,
-  ) {}
+    @InjectRepository(ChatRoom)
+    private chatRoomRepository: Repository<ChatRoom>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(Message)
+    private messageRepository: Repository<Message>,
+    @InjectRepository(UserSocket)
+    private userSocketRepository: Repository<UserSocket>,
+  ) { }
 
   async userSocketConnection(client: Socket): Promise<void> {
     const userIdString = client.handshake.query.userId as string;
@@ -38,53 +39,120 @@ export class ChatService {
       client.join(`room-${chatRoom.id}`);
       client.emit('joinedChatRoom', { success: true, chatRoomId: chatRoom.id });
     }
+  }
 
+  async userSocketDisconnection(client: Socket): Promise<void> {
+    const socketId = client.id;
+    const userSocket = this.userSocketRepository.findOne({ where: { socketId } });
+    if (!userSocket) throw new NotFoundException("서버에 존재하지 않는 사용자 입니다.");
+    await this.userSocketRepository.delete({ socketId });
   }
 
   async createChatRoom(createChatRoomDto: CreateChatRoomDto): Promise<ChatRoom> {
-      const { name, userIds } = createChatRoomDto;
-      const users = await this.userRepository.findBy({ id: In(userIds) });
+    const { name, userIds } = createChatRoomDto;
 
-      if (users.length !== userIds.length) {
-        throw new Error('존재하지 않는 사용자는 채팅방에 초대할 수 없습니다.');
-      }
-      if (users.length < 2) {
-        throw new Error('채팅방 최소 인원은 2명 입니다.');
-      }
+    if (userIds.length < 2) {
+      throw new Error('채팅방 최소 인원은 2명 입니다.');
+    }
 
-      const chatRoom = this.chatRoomRepository.create({
-        name: name,
-        users: users
-      });
-      return this.chatRoomRepository.save(chatRoom);
+    userIds.sort();
+    const users = await this.userRepository.findBy({ id: In(userIds) });
+
+    if (users.length !== userIds.length) {
+      throw new Error('존재하지 않는 사용자는 채팅방에 초대할 수 없습니다.');
+    }
+
+    const targetUser = users[0];
+    const targetChatRooms = await this.chatRoomRepository.find({
+      where: { id: In(targetUser.chatRooms.map(room => room.id)) },
+      relations: ['users', 'messages']
+    });
+
+    for (const room of targetChatRooms) {
+      if (room.userCounts !== userIds.length) continue;
+      const targetUserIds = room.users.map(user => user.id)
+      if (JSON.stringify(targetUserIds) === JSON.stringify(userIds)) {
+        return room;
+      }
+    }
+
+    const chatRoom = this.chatRoomRepository.create({
+      name: name,
+      users: users,
+      userCounts: userIds.length
+    });
+    return this.chatRoomRepository.save(chatRoom);
+  }
+
+  async leaveChatRoom(leaveChatRoomDto: LeaveChatRoomDto): Promise<void> {
+    const { userId, chatRoomId } = leaveChatRoomDto;
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException("존재하지 않는 사용자 입니다.");
+
+    const chatRoom = await this.chatRoomRepository.findOne({
+      where: { id: chatRoomId },
+      relations: ['users', 'messages'],
+    });
+    if (!chatRoom) throw new NotFoundException("존재하지 않는 채팅방 입니다.");
+    const checkUser = chatRoom.users.findIndex((u) => u.id === userId);
+    if (checkUser === -1) throw new NotFoundException("해당 사용자는 채팅방에 존재하지 않습니다.");
+
+    chatRoom.users.splice(checkUser, 1);
+    await this.chatRoomRepository.save(chatRoom);
+
+    if (chatRoom.users.length === 0) await this.chatRoomRepository.remove(chatRoom);
   }
 
   async saveMessage(sendMessageDto: SendMessageDto): Promise<Message> {
     const { chatRoomId, senderId, message } = sendMessageDto;
-    const chatRoom = await this.chatRoomRepository.findOne({ where: { id: chatRoomId }});
-    const sender = await this.userRepository.findOne({ where: { id: senderId }});
+    const chatRoom = await this.chatRoomRepository.findOne({ where: { id: chatRoomId } });
+    const sender = await this.userRepository.findOne({ where: { id: senderId } });
 
     const newMessage = this.messageRepository.create({ chatRoom, sender, content: message, createdAt: new Date() });
     return await this.messageRepository.save(newMessage);
   }
 
-  /*
-  async getChatHistory(chatRoomId: number): Promise<Message[]> {
-    return this.messageRepository.find({
-      where: { chatRoom: chatRoomId },
-      order: { createdAt: 'ASC' },
-      relations: ['sender']
+  async reconnectChatRoom(reconnectChatRoomDto: LeaveChatRoomDto): Promise<ChatRoom> {
+    const { userId, chatRoomId } = reconnectChatRoomDto;
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    const chatRoomIndex = user.chatRooms.findIndex((room) => room.id === chatRoomId);
+    if (chatRoomIndex === -1) throw new NotFoundException("해당 채팅방에 참여하지 않은 사용자 입니다.");
+
+    const chatRoom = await this.chatRoomRepository.findOne({
+      where: { id: chatRoomId },
+      relations: ['messages']
     });
+    if (!chatRoom) throw new NotFoundException("존재하지 않는 채팅방입니다.");
+
+    return chatRoom;
   }
-    */
+
+ /* 
+  async getChatHistory(chatRoomId: number): Promise<Message[]> {
+    const chatRoom = await this.chatRoomRepository.findOne({
+      where: { id: chatRoomId },
+      relations: ['messages']
+    });
+    if (!chatRoom) throw new NotFoundException("존재하지 않는 채팅방입니다.");
+
+    const messages = chatRoom.messages;
+
+    return messages;
+  }
+  */
+  
+
   async getUsersInChatRoom(chatRoomId: number): Promise<User[]> {
     const chatRoom = await this.chatRoomRepository.findOne({
       where: { id: chatRoomId },
       relations: ['users'],
     });
-  
+
     if (!chatRoom) { throw new NotFoundException('Chat room not found'); }
-  
+
     return chatRoom.users;
   }
 
@@ -94,5 +162,5 @@ export class ChatService {
       .innerJoin('chatRoom.users', 'user')
       .where('user.id = :id', { id: id })
       .getMany();
-  }  
+  }
 }

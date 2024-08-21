@@ -10,6 +10,7 @@ import { Docs } from 'src/decorators/docs/chat.decorator';
 import { SendMessageDto } from './dtos/sendMessage.dto';
 import { UserSocket } from 'src/entities/userSocket.entity';
 import { GetChatRoomUserInfoDto } from './dtos/getChatRoomUserInfo.dto';
+import { LeaveChatRoomDto } from './dtos/leaveChatRoom.dto';
 
 @WebSocketGateway()
 export class ChatGateway {
@@ -37,7 +38,8 @@ export class ChatGateway {
     console.log(`Client connected: ${client.id}`);
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
+    await this.chatService.userSocketDisconnection(client);
     console.log(`Client disconnected: ${client.id}`);
   }
 
@@ -48,6 +50,20 @@ export class ChatGateway {
     client.emit('chatRoomCreated', chatRoom);
 
     return chatRoom;
+  }
+
+  @SubscribeMessage('leaveChatRoom')
+  @Docs('leaveChatRoom')
+  async leaveChatRoom(@MessageBody() leaveChatRoomDto: LeaveChatRoomDto, @ConnectedSocket() client: Socket){
+    await this.chatService.leaveChatRoom(leaveChatRoomDto);
+    client.emit('leaveChatRoom', "채팅방에서 퇴장했습니다.");
+  }
+
+  @SubscribeMessage('reconnectChatRoom')
+  @Docs('reconnectChatRoom')
+  async reconnectChatRoom(@MessageBody() reconnectChatRoomDto: LeaveChatRoomDto, @ConnectedSocket() client: Socket){
+    const chatRoom = await this.chatService.reconnectChatRoom(reconnectChatRoomDto);
+    client.emit('reconnectChatRoom', chatRoom);
   }
 
   @SubscribeMessage('sendMessage')
@@ -63,7 +79,6 @@ export class ChatGateway {
   async getChatRoomUserInfo(@MessageBody() getChatRoomUserInfoDto: GetChatRoomUserInfoDto, @ConnectedSocket() client: Socket): Promise<void> {
     try {
       const users = await this.chatService.getUsersInChatRoom(getChatRoomUserInfoDto.chatRoomId);
-      console.log(users);
       this.server.to(`room-${getChatRoomUserInfoDto.chatRoomId}`).emit('usersInChatRoom', users);
     } catch (error) {
       client.emit('error', { message: error.message });

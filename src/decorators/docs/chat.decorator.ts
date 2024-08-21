@@ -1,11 +1,14 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { CreateChatRoomDto } from 'src/chat/dtos/createChatRoom.dto';
+import { LeaveChatRoomDto } from 'src/chat/dtos/leaveChatRoom.dto';
 import { SendMessageDto } from 'src/chat/dtos/sendMessage.dto';
 
 type EndPoints =
   | 'list'
   | 'createChatRoom'
+  | 'leaveChatRoom'
+  | 'reconnectChatRoom'
   | 'sendMessage'
   | 'getChatRoomUserInfo';
 
@@ -21,6 +24,16 @@ export function Docs(endPoint: EndPoints) {
         type: CreateChatRoomDto
       })
     );
+    case 'leaveChatRoom': return applyDecorators(
+      ApiBody({
+        type: LeaveChatRoomDto
+      })
+    );
+    case 'reconnectChatRoom': return applyDecorators(
+      ApiBody({
+        
+      })
+    )
     case 'sendMessage': return applyDecorators(
       ApiBody({
         type: SendMessageDto

@@ -9,6 +9,9 @@ export class ChatRoom {
 
   @Column()
   name: string;
+
+  @Column()
+  userCounts: number;
   
   @CreateDateColumn()
   createdAt: Date;
