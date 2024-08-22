@@ -16,19 +16,15 @@ export class AuthService {
       ) {}
 
       async signup(signupDto: SignupDto): Promise<void> {
-        const { name, nickname, email, password } = signupDto;  
-        if (!name || !nickname || !email || !password) throw new ConflictException('작성하지 않은 항목이 있습니다.');
+        const { name, email, password } = signupDto;  
+        if (!name || !email || !password) throw new ConflictException('작성하지 않은 항목이 있습니다.');
     
         const userByEmail = await this.userRepository.findOne({ where: { email } });
         if (userByEmail) throw new ConflictException('이미 사용중인 이메일 입니다.');
     
-        const userByNickname = await this.userRepository.findOne({ where: { nickname } });
-        if (userByNickname) throw new ConflictException('이미 사용중인 닉네임 입니다.');
-    
         const hashedPassword = await hash(password, 10);
         const newUser = this.userRepository.create({
           name,
-          nickname,
           email,
           password: hashedPassword,
         });

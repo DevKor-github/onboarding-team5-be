@@ -70,7 +70,7 @@ export class ChatService {
 
     for (const room of targetChatRooms) {
       if (room.userCounts !== userIds.length) continue;
-      const targetUserIds = room.users.map(user => user.id)
+      const targetUserIds = room.users.map(user => user.id);
       if (JSON.stringify(targetUserIds) === JSON.stringify(userIds)) {
         return room;
       }
@@ -81,10 +81,11 @@ export class ChatService {
       users: users,
       userCounts: userIds.length
     });
+
     return this.chatRoomRepository.save(chatRoom);
   }
 
-  async leaveChatRoom(leaveChatRoomDto: LeaveChatRoomDto): Promise<void> {
+  async leaveChatRoom(leaveChatRoomDto: LeaveChatRoomDto, client: Socket): Promise<void> {
     const { userId, chatRoomId } = leaveChatRoomDto;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -100,6 +101,7 @@ export class ChatService {
 
     chatRoom.users.splice(checkUser, 1);
     await this.chatRoomRepository.save(chatRoom);
+    client.leave(`room-${chatRoom.id}`);
 
     if (chatRoom.users.length === 0) await this.chatRoomRepository.remove(chatRoom);
   }
@@ -113,7 +115,7 @@ export class ChatService {
     return await this.messageRepository.save(newMessage);
   }
 
-  async reconnectChatRoom(reconnectChatRoomDto: LeaveChatRoomDto): Promise<ChatRoom> {
+  async reconnectChatRoom(reconnectChatRoomDto: LeaveChatRoomDto): Promise<any> {
     const { userId, chatRoomId } = reconnectChatRoomDto;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -123,7 +125,8 @@ export class ChatService {
 
     const chatRoom = await this.chatRoomRepository.findOne({
       where: { id: chatRoomId },
-      relations: ['messages']
+      relations: ['messages'],
+      select: ['messages']
     });
     if (!chatRoom) throw new NotFoundException("존재하지 않는 채팅방입니다.");
 
@@ -145,15 +148,15 @@ export class ChatService {
   */
   
 
-  async getUsersInChatRoom(chatRoomId: number): Promise<User[]> {
-    const chatRoom = await this.chatRoomRepository.findOne({
-      where: { id: chatRoomId },
-      relations: ['users'],
-    });
+  async getUsersInChatRoom(chatRoomId: number): Promise<Partial<User>[]> {
+    const users = await this.userRepository
+    .createQueryBuilder('user')
+    .leftJoin('user.chatRooms', 'chatRoom') // Join with chatRooms
+    .where('chatRoom.id = :chatRoomId', { chatRoomId })
+    .select(['user.id', 'user.name']) // Only select the 'id' field
+    .getMany();
 
-    if (!chatRoom) { throw new NotFoundException('Chat room not found'); }
-
-    return chatRoom.users;
+    return users;
   }
 
   async getChatRoomsForUser(id: number): Promise<any[]> {

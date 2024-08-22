@@ -4,16 +4,12 @@ import { Message } from './message.entity';
 
 @Entity()
 @Unique(['email'])
-@Unique(['nickname'])
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
   name: string;
-
-  @Column()
-  nickname: string;
 
   @Column()
   email: string;
@@ -23,9 +19,6 @@ export class User {
 
   @Column({ nullable: true })
   introduction?: string;
-
-  @Column({ nullable: true })
-  genre?: string;
 
   @Column({ nullable: true })
   profileImagePath?: string;

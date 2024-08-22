@@ -55,7 +55,7 @@ export class ChatGateway {
   @SubscribeMessage('leaveChatRoom')
   @Docs('leaveChatRoom')
   async leaveChatRoom(@MessageBody() leaveChatRoomDto: LeaveChatRoomDto, @ConnectedSocket() client: Socket){
-    await this.chatService.leaveChatRoom(leaveChatRoomDto);
+    await this.chatService.leaveChatRoom(leaveChatRoomDto, client);
     client.emit('leaveChatRoom', "채팅방에서 퇴장했습니다.");
   }
 

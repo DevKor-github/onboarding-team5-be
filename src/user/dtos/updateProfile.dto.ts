@@ -23,11 +23,6 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  @ApiProperty({ example: "장르. 제외 예정" })
-  genre: string;
-
-  @IsOptional()
-  @IsString()
   @ApiProperty({ example: "dddd.ddddddd" })
   profileImagePath: string;
 }

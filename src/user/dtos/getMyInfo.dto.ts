@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsEmail, IsOptional } from 'class-validator';
 
-export class GetMyProfileDto {
+export class GetMyInfoDto {
 
   @IsString()
   @ApiProperty({ example: "홍길동" })
@@ -19,11 +19,6 @@ export class GetMyProfileDto {
   @IsString()
   @ApiProperty({ example: "안녕하세요" })
   introduction: string;
-
-  @IsOptional()
-  @IsString()
-  @ApiProperty({ example: "장르. 제외 예정" })
-  genre: string;
 
   @IsOptional()
   @IsString()

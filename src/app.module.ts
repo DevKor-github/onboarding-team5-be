@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ChatModule } from './chat/chat.module';
+import { S3Module } from './s3/s3.module';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { ChatModule } from './chat/chat.module';
         secret: process.env.JWT_SECRET,
         signOptions: {expiresIn: process.env.JWT_EXPIRES_IN}
       })
-    ,AuthModule, UserModule, ChatModule],
+    ,AuthModule, UserModule, ChatModule, S3Module],
   controllers: [AppController],
   providers: [AppService],
 })
