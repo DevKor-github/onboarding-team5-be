@@ -15,14 +15,17 @@ import {
   
     @Column()
     content: string;
+
+    @Column()
+    senderId: number;
   
     @CreateDateColumn()
     createdAt: Date;
   
-    @ManyToOne(() => User, (user) => user.messages)
+    @ManyToOne(() => User, (user) => user.messages, { cascade: true, onDelete: 'CASCADE' })
     sender: User;
   
-    @ManyToOne(() => ChatRoom, (chatRoom) => chatRoom.messages)
+    @ManyToOne(() => ChatRoom, (chatRoom) => chatRoom.messages, { cascade: true, onDelete: 'CASCADE' })
     chatRoom: ChatRoom;
   }
   

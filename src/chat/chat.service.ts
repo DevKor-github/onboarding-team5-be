@@ -6,7 +6,7 @@ import { Repository, In } from 'typeorm';
 import { CreateChatRoomDto } from './dtos/createChatRoom.dto';
 import { Message } from 'src/entities/message.entity';
 import { SendMessageDto } from './dtos/sendMessage.dto';
-import { Socket } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { UserSocket } from 'src/entities/userSocket.entity';
 import { LeaveChatRoomDto } from './dtos/leaveChatRoom.dto';
 
@@ -23,7 +23,7 @@ export class ChatService {
     private userSocketRepository: Repository<UserSocket>,
   ) { }
 
-  async userSocketConnection(client: Socket):Promise<void> {
+  async userSocketConnection(client: Socket): Promise<void> {
     const userIdString = client.handshake.query.userId as string;
     if (!userIdString) throw new NotFoundException("사용자 ID가 없습니다.");
     const userId = parseInt(userIdString, 10);
@@ -41,14 +41,14 @@ export class ChatService {
     }
   }
 
-  async userSocketDisconnection(client: Socket): Promise<void> {
+  async userSocketDisconnection(client: Socket) {
     const socketId = client.id;
     const userSocket = this.userSocketRepository.findOne({ where: { socketId } });
     if (!userSocket) throw new NotFoundException("서버에 존재하지 않는 사용자 입니다.");
     await this.userSocketRepository.delete({ socketId });
   }
 
-  async createChatRoom(createChatRoomDto: CreateChatRoomDto): Promise<ChatRoom> {
+  async createChatRoom(createChatRoomDto: CreateChatRoomDto, server: Server): Promise<ChatRoom> {
     const { name, userIds } = createChatRoomDto;
 
     if (userIds.length < 2) {
@@ -76,16 +76,24 @@ export class ChatService {
       }
     }
 
-    const chatRoom = this.chatRoomRepository.create({
+    const newRoom = this.chatRoomRepository.create({
       name: name,
       users: users,
       userCounts: userIds.length
     });
 
-    return await this.chatRoomRepository.save(chatRoom);
+    const chatRoom = await this.chatRoomRepository.save(newRoom);
+
+    for (const userId of userIds) {
+      const userSocket = await this.userSocketRepository.findOne({ where: { userId } });
+      if (userSocket) server.in(userSocket.socketId).socketsJoin(`room-${chatRoom.id}`);
+      
+    }
+
+    return chatRoom;
   }
 
-  async leaveChatRoom(leaveChatRoomDto: LeaveChatRoomDto, client: Socket): Promise<void> {
+  async leaveChatRoom(leaveChatRoomDto: LeaveChatRoomDto, client: Socket) {
     const { userId, chatRoomId } = leaveChatRoomDto;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -100,6 +108,7 @@ export class ChatService {
     if (checkUser === -1) throw new NotFoundException("해당 사용자는 채팅방에 존재하지 않습니다.");
 
     chatRoom.users.splice(checkUser, 1);
+    chatRoom.userCounts -= 1;
     await this.chatRoomRepository.save(chatRoom);
     client.leave(`room-${chatRoom.id}`);
 
@@ -133,28 +142,22 @@ export class ChatService {
     return chatRoom;
   }
 
- /* 
-  async getChatHistory(chatRoomId: number): Promise<Message[]> {
-    const chatRoom = await this.chatRoomRepository.findOne({
-      where: { id: chatRoomId },
-      relations: ['messages']
-    });
-    if (!chatRoom) throw new NotFoundException("존재하지 않는 채팅방입니다.");
 
-    const messages = chatRoom.messages;
-
-    return messages;
+  async getChatHistory(chatRoomId: number): Promise<Partial<Message>[]> {
+    return this.messageRepository.createQueryBuilder('message')
+      .select(['message.content', 'message.createdAt', 'message.senderId'])
+      .innerJoin('message.chatRoom', 'chatRoom')
+      .where('message.chatRoomId = :chatRoomId', { chatRoomId: chatRoomId })
+      .getMany();
   }
-  */
-  
 
   async getUsersInChatRoom(chatRoomId: number): Promise<Partial<User>[]> {
     const users = await this.userRepository
-    .createQueryBuilder('user')
-    .leftJoin('user.chatRooms', 'chatRoom') // Join with chatRooms
-    .where('chatRoom.id = :chatRoomId', { chatRoomId })
-    .select(['user.id', 'user.name']) // Only select the 'id' field
-    .getMany();
+      .createQueryBuilder('user')
+      .leftJoin('user.chatRooms', 'chatRoom')
+      .where('chatRoom.id = :chatRoomId', { chatRoomId })
+      .select(['user.id', 'user.name'])
+      .getMany();
 
     return users;
   }

@@ -21,6 +21,7 @@ import { S3Module } from './s3/s3.module';
       database: process.env.DB_DATABASE,
       entities: [__dirname + '/entities/**/*.entity{.ts,.js}'],
       synchronize: true,
+      timezone: '+09:00'
     }),
     JwtModule.register({
         secret: process.env.JWT_SECRET,

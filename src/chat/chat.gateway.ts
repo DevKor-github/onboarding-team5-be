@@ -9,7 +9,6 @@ import { ChatService } from './chat.service';
 import { Docs } from 'src/decorators/docs/chat.decorator';
 import { SendMessageDto } from './dtos/sendMessage.dto';
 import { UserSocket } from 'src/entities/userSocket.entity';
-import { GetChatRoomUserInfoDto } from './dtos/getChatRoomUserInfo.dto';
 import { LeaveChatRoomDto } from './dtos/leaveChatRoom.dto';
 
 @WebSocketGateway()
@@ -46,7 +45,7 @@ export class ChatGateway {
   @SubscribeMessage('createChatRoom')
   @Docs('createChatRoom')
   async createChatRoom(@MessageBody() createChatRoomDto: CreateChatRoomDto, @ConnectedSocket() client: Socket) {
-    const chatRoom = await this.chatService.createChatRoom(createChatRoomDto);
+    const chatRoom = await this.chatService.createChatRoom(createChatRoomDto, this.server);
     client.emit('chatRoomCreated', chatRoom);
 
     return chatRoom;
@@ -68,18 +67,17 @@ export class ChatGateway {
 
   @SubscribeMessage('sendMessage')
   @Docs('sendMessage')
-  async sendMessage(@MessageBody() sendMessageDto: SendMessageDto, @ConnectedSocket() client: Socket) {
+  async sendMessage(@MessageBody() sendMessageDto: SendMessageDto) {
     const saveMessage = await this.chatService.saveMessage(sendMessageDto);
-
     this.server.to(`room-${sendMessageDto.chatRoomId}`).emit('messageReceived', saveMessage);
   }
 
   @SubscribeMessage('getChatRoomUserInfo')
   @Docs('getChatRoomUserInfo')
-  async getChatRoomUserInfo(@MessageBody() getChatRoomUserInfoDto: GetChatRoomUserInfoDto, @ConnectedSocket() client: Socket): Promise<void> {
+  async getChatRoomUserInfo(@MessageBody() chatRoomId: number, @ConnectedSocket() client: Socket): Promise<void> {
     try {
-      const users = await this.chatService.getUsersInChatRoom(getChatRoomUserInfoDto.chatRoomId);
-      this.server.to(`room-${getChatRoomUserInfoDto.chatRoomId}`).emit('usersInChatRoom', users);
+      const users = await this.chatService.getUsersInChatRoom(chatRoomId);
+      this.server.to(`room-${chatRoomId}`).emit('usersInChatRoom', users);
     } catch (error) {
       client.emit('error', { message: error.message });
     }
