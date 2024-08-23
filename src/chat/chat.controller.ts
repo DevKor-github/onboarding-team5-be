@@ -7,16 +7,6 @@ import { Docs } from 'src/decorators/docs/chat.decorator';
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chatSerivce: ChatService) {}
-
-  /*
-  @UseGuards(AuthGuard('jwt-access'))
-  @Post('create')
-  async createChatRoom(@Request() req, @Body() createChatRoomDto: CreateChatRoomDto) {
-    const chatRoom = await this.chatSerivce.createChatRoom(createChatRoomDto);
-
-    return chatRoom;
-  }
-  */
   
   @UseGuards(AuthGuard('jwt-access'))
   @Get('list')

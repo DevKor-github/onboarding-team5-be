@@ -14,13 +14,13 @@ export class UserService {
     private userRepository: Repository<User>,
     @Inject('S3_CLIENT')
     private readonly s3Client: S3Client
-  ) {}
+  ) { }
 
   async findAll(): Promise<Partial<User>[]> {
     return await this.userRepository
-    .createQueryBuilder('user')
-    .select(['user.id', 'user.name', 'user.introduction', 'user.profileImagePath'])
-    .getMany();
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.name', 'user.introduction', 'user.profileImagePath'])
+      .getMany();
   }
 
   async getMyInfo(id: number): Promise<GetMyInfoDto> {
@@ -41,36 +41,52 @@ export class UserService {
     return userInfo;
   }
 
-  async updateProfile(id: number, updateProfileDto: UpdateProfileDto): Promise<void> {
+  async updateProfile(id: number, updateProfileDto: UpdateProfileDto, file?: Express.Multer.File): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) throw new NotFoundException('존재하지 않는 사용자 입니다.');
 
-    const { name, email, password, introduction, profileImagePath } = updateProfileDto;
+    const { name, email, password, introduction } = updateProfileDto;
 
     user.name = name ?? user.name;
     user.email = email ?? user.email;
     user.password = password ?? user.password;
     user.introduction = introduction ?? user.introduction;
-    user.profileImagePath = profileImagePath ?? user.profileImagePath;
+
+    if (file) {
+      if (user.profileImagePath) await this.deleteProfileImage(user.profileImagePath);
+      const profileImagePath = await this.updateProfileImage(file);
+      user.profileImagePath = profileImagePath;
+    }
 
     await this.userRepository.save(user);
   }
 
-  /*
-  async updateProfileImage(): Promise<string> {
+
+  async updateProfileImage(file?: Express.Multer.File): Promise<string> {
     const bucketName = process.env.AWS_S3_BUCKET_NAME;
     const key = `profile-images/${Date.now()}-${file.originalname}`;
 
     await this.s3Client.send(new PutObjectCommand({
       Bucket: bucketName,
       Key: key,
-      //Body: file.buffer,
-      //ContentType: file.mimetype,
+      Body: file.buffer,
+      ContentType: file.mimetype,
     }));
 
     return `https://${bucketName}.s3.amazonaws.com/${key}`;
   }
-    */
+
+  async deleteProfileImage(profileImagePath: string): Promise<void> {
+    const bucketName = process.env.AWS_S3_BUCKET_NAME;
+    const key = profileImagePath.split(`${bucketName}.s3.amazonaws.com/`)[1];
+
+    if (key) {
+      await this.s3Client.send(new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+      }));
+    }
+  }
 
   async deleteUser(id: number): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id } });

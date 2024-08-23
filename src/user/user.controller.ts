@@ -1,8 +1,9 @@
-import { Controller, Get, Patch, Delete, Request, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Request, Body, Query, UseGuards, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UserService } from './user.service';
 import { UpdateProfileDto } from './dtos/updateProfile.dto';
 import { Docs } from 'src/decorators/docs/user.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('user')
 export class UserController {
@@ -25,10 +26,11 @@ export class UserController {
 
   @Patch('update-profile')
   @UseGuards(AuthGuard('jwt-access'))
+  @UseInterceptors(FileInterceptor('file'))
   @Docs('update-profile')
-  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto, @UploadedFile() file: Express.Multer.File,) {
     const id = req.user.id;
-    return await this.userService.updateProfile(id, updateProfileDto);
+    return await this.userService.updateProfile(id, updateProfileDto, file);
     // return { message: 'editProfile success' };
   }
 

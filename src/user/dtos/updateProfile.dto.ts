@@ -20,9 +20,4 @@ export class UpdateProfileDto {
   @IsString()
   @ApiProperty({ example: "안녕하세요" })
   introduction: string;
-
-  @IsOptional()
-  @IsString()
-  @ApiProperty({ example: "dddd.ddddddd" })
-  profileImagePath: string;
 }

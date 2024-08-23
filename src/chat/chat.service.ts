@@ -23,7 +23,7 @@ export class ChatService {
     private userSocketRepository: Repository<UserSocket>,
   ) { }
 
-  async userSocketConnection(client: Socket): Promise<void> {
+  async userSocketConnection(client: Socket):Promise<void> {
     const userIdString = client.handshake.query.userId as string;
     if (!userIdString) throw new NotFoundException("사용자 ID가 없습니다.");
     const userId = parseInt(userIdString, 10);
@@ -82,7 +82,7 @@ export class ChatService {
       userCounts: userIds.length
     });
 
-    return this.chatRoomRepository.save(chatRoom);
+    return await this.chatRoomRepository.save(chatRoom);
   }
 
   async leaveChatRoom(leaveChatRoomDto: LeaveChatRoomDto, client: Socket): Promise<void> {

@@ -17,7 +17,7 @@ export function Docs(endPoint: EndPoints) {
     );
     case 'update-profile': return applyDecorators(
       ApiBody({
-        type: UpdateProfileDto
+        type: UpdateProfileDto,
       })
     );
     case 'get-all': return applyDecorators(
