@@ -192,10 +192,10 @@ export class ChatService {
       chatRoomInfo.push({
         id: room.id,
         name: room.name,
-        updatedAt: room.updatedAt,
         latestMessage: {
           senderId: latestMessageInfo.senderId,
-          content: latestMessageInfo.content
+          content: latestMessageInfo.content,
+          createdAt: latestMessageInfo.createdAt
         },
         usersInfo: usersInfo
       })
@@ -207,7 +207,7 @@ export class ChatService {
 
   async getLatestMessage(chatRoomId: number): Promise<Partial<Message>> {
     return await this.messageRepository.createQueryBuilder('message')
-      .select(['message.senderId', 'message.content'])
+      .select(['message.senderId', 'message.content', 'message.createdAt'])
       .where('message.chatRoomId = :chatRoomId', { chatRoomId })
       .orderBy('message.createdAt', 'DESC')
       .limit(1)
