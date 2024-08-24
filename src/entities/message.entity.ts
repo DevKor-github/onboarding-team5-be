@@ -18,6 +18,9 @@ import {
 
     @Column()
     senderId: number;
+
+    @Column()
+    chatRoomId: number;
   
     @CreateDateColumn()
     createdAt: Date;

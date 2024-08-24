@@ -87,7 +87,7 @@ export class ChatService {
     for (const userId of userIds) {
       const userSocket = await this.userSocketRepository.findOne({ where: { userId } });
       if (userSocket) server.in(userSocket.socketId).socketsJoin(`room-${chatRoom.id}`);
-      
+
     }
 
     return chatRoom;
@@ -163,10 +163,42 @@ export class ChatService {
   }
 
   async getChatRoomsForUser(id: number): Promise<any[]> {
-    return this.chatRoomRepository.createQueryBuilder('chatRoom')
+    
+    const chatRoom = await this.chatRoomRepository.createQueryBuilder('chatRoom')
       .select(['chatRoom.id', 'chatRoom.name', 'chatRoom.updatedAt'])
       .innerJoin('chatRoom.users', 'user')
       .where('user.id = :id', { id: id })
       .getMany();
+
+    const chatRoomInfo: any[] = []
+
+    for (const room of chatRoom) {
+      if (!room.id) continue;
+      const latestMessageInfo = await this.getLatestMessage(room.id);
+      if (!latestMessageInfo) continue;
+
+      chatRoomInfo.push({
+        id: room.id,
+        name: room.name,
+        updatedAt: room.updatedAt,
+        latestMessage: {
+          senderId: latestMessageInfo.senderId,
+          content: latestMessageInfo.content
+        } 
+      })
+    }
+
+    return chatRoomInfo;
+
   }
+
+  async getLatestMessage(chatRoomId: number): Promise<Partial<Message>> {
+    return await this.messageRepository.createQueryBuilder('message')
+      .select(['message.senderId', 'message.content'])
+      .where('message.chatRoomId = :chatRoomId', { chatRoomId })
+      .orderBy('message.createdAt', 'DESC')
+      .limit(1)
+      .getOne();
+  }
+      
 }
