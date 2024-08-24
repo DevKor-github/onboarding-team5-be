@@ -176,6 +176,7 @@ export class ChatService {
       if (!room.id) continue;
       const latestMessageInfo = await this.getLatestMessage(room.id);
       if (!latestMessageInfo) continue;
+      const usersInfo = await this.getUsersInChatRoom(room.id);
 
       chatRoomInfo.push({
         id: room.id,
@@ -184,7 +185,8 @@ export class ChatService {
         latestMessage: {
           senderId: latestMessageInfo.senderId,
           content: latestMessageInfo.content
-        } 
+        },
+        usersInfo: usersInfo
       })
     }
 
