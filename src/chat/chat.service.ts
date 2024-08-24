@@ -9,6 +9,7 @@ import { SendMessageDto } from './dtos/sendMessage.dto';
 import { Server, Socket } from 'socket.io';
 import { UserSocket } from 'src/entities/userSocket.entity';
 import { LeaveChatRoomDto } from './dtos/leaveChatRoom.dto';
+import { WsException } from '@nestjs/websockets';
 
 @Injectable()
 export class ChatService {
@@ -27,6 +28,10 @@ export class ChatService {
     const userIdString = client.handshake.query.userId as string;
     if (!userIdString) throw new NotFoundException("사용자 ID가 없습니다.");
     const userId = parseInt(userIdString, 10);
+    if (await this.isSocket(userId)) { 
+      client.disconnect();
+      throw new WsException("이미 소켓에 존재하는 사용자 입니다.");
+    }
     const socketId = client.id;
     const userSocket = this.userSocketRepository.create({
       userId,
@@ -39,6 +44,12 @@ export class ChatService {
       client.join(`room-${chatRoom.id}`);
       client.emit('joinedChatRoom', { success: true, chatRoomId: chatRoom.id });
     }
+  }
+
+  async isSocket(userId: number): Promise<boolean> {
+    const socketId = await this.userSocketRepository.findOne({ where: { userId } });
+    console.log(socketId);
+    return !!socketId;
   }
 
   async userSocketDisconnection(client: Socket) {

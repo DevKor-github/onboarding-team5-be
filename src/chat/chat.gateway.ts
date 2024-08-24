@@ -33,8 +33,10 @@ export class ChatGateway {
 
   async handleConnection(client: Socket) {
     await this.chatService.userSocketConnection(client);
-    client.emit('welcomeMessage', { message: `Client connected: ${client.id}` });
-    console.log(`Client connected: ${client.id}`);
+    if (client.connected) {
+      client.emit('welcomeMessage', { message: `Client connected: ${client.id}` });
+      console.log(`Client connected: ${client.id}`);
+    }
   }
 
   async handleDisconnect(client: Socket) {
@@ -53,14 +55,14 @@ export class ChatGateway {
 
   @SubscribeMessage('leaveChatRoom')
   @Docs('leaveChatRoom')
-  async leaveChatRoom(@MessageBody() leaveChatRoomDto: LeaveChatRoomDto, @ConnectedSocket() client: Socket){
+  async leaveChatRoom(@MessageBody() leaveChatRoomDto: LeaveChatRoomDto, @ConnectedSocket() client: Socket) {
     await this.chatService.leaveChatRoom(leaveChatRoomDto, client);
     client.emit('leaveChatRoom', "채팅방에서 퇴장했습니다.");
   }
 
   @SubscribeMessage('reconnectChatRoom')
   @Docs('reconnectChatRoom')
-  async reconnectChatRoom(@MessageBody() reconnectChatRoomDto: LeaveChatRoomDto, @ConnectedSocket() client: Socket){
+  async reconnectChatRoom(@MessageBody() reconnectChatRoomDto: LeaveChatRoomDto, @ConnectedSocket() client: Socket) {
     const chatRoom = await this.chatService.reconnectChatRoom(reconnectChatRoomDto);
     client.emit('reconnectChatRoom', chatRoom);
   }
