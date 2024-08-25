@@ -21,6 +21,9 @@ export class AuthService {
     
         const userByEmail = await this.userRepository.findOne({ where: { email } });
         if (userByEmail) throw new ConflictException('이미 사용중인 이메일 입니다.');
+
+        const passwordCheck = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+        if (!passwordCheck.test(password)) throw new UnauthorizedException('비밀번호는 최소 8자 이상이어야 하며, 영어, 숫자, 특수문자를 각각 최소 하나 이상 포함해야 합니다.');
     
         const hashedPassword = await hash(password, 10);
         const newUser = this.userRepository.create({

@@ -26,6 +26,7 @@ export class UserService {
   async getMyInfo(id: number): Promise<GetMyInfoDto> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) throw new NotFoundException("존재하지 않는 사용자 입니다.");
+
     const { name, email, password, introduction, profileImagePath } = user;
     const userInfo = { name, email, password, introduction, profileImagePath };
 
@@ -35,6 +36,7 @@ export class UserService {
   async getUserInfo(userId: number): Promise<GetUserInfoDto> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException("존재하지 않는 사용자 입니다.");
+    
     const { id, name, introduction, profileImagePath } = user;
     const userInfo = { id, name, introduction, profileImagePath };
 
@@ -60,7 +62,6 @@ export class UserService {
 
     await this.userRepository.save(user);
   }
-
 
   async updateProfileImage(file?: Express.Multer.File): Promise<string> {
     const bucketName = process.env.AWS_S3_BUCKET_NAME;

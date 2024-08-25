@@ -27,11 +27,13 @@ export class ChatService {
   async userSocketConnection(client: Socket): Promise<void> {
     const userIdString = client.handshake.query.userId as string;
     if (!userIdString) throw new NotFoundException("사용자 ID가 없습니다.");
+
     const userId = parseInt(userIdString, 10);
     if (await this.isSocket(userId)) { 
       client.disconnect();
       throw new WsException("이미 소켓에 존재하는 사용자 입니다.");
     }
+
     const socketId = client.id;
     const userSocket = this.userSocketRepository.create({
       userId,
@@ -62,16 +64,11 @@ export class ChatService {
   async createChatRoom(createChatRoomDto: CreateChatRoomDto, server: Server): Promise<ChatRoom> {
     const { name, userIds } = createChatRoomDto;
 
-    if (userIds.length < 2) {
-      throw new Error('채팅방 최소 인원은 2명 입니다.');
-    }
-
+    if (userIds.length < 2) throw new Error('채팅방 최소 인원은 2명 입니다.');
     userIds.sort();
-    const users = await this.userRepository.findBy({ id: In(userIds) });
 
-    if (users.length !== userIds.length) {
-      throw new Error('존재하지 않는 사용자는 채팅방에 초대할 수 없습니다.');
-    }
+    const users = await this.userRepository.findBy({ id: In(userIds) });
+    if (users.length !== userIds.length) throw new Error('존재하지 않는 사용자는 채팅방에 초대할 수 없습니다.');
 
     const targetUser = users[0];
     const targetChatRooms = await this.chatRoomRepository.find({
@@ -82,9 +79,7 @@ export class ChatService {
     for (const room of targetChatRooms) {
       if (room.userCounts !== userIds.length) continue;
       const targetUserIds = room.users.map(user => user.id);
-      if (JSON.stringify(targetUserIds) === JSON.stringify(userIds)) {
-        return room;
-      }
+      if (JSON.stringify(targetUserIds) === JSON.stringify(userIds)) return room;
     }
 
     const newRoom = this.chatRoomRepository.create({
@@ -92,13 +87,11 @@ export class ChatService {
       users: users,
       userCounts: userIds.length
     });
-
     const chatRoom = await this.chatRoomRepository.save(newRoom);
 
     for (const userId of userIds) {
       const userSocket = await this.userSocketRepository.findOne({ where: { userId } });
       if (userSocket) server.in(userSocket.socketId).socketsJoin(`room-${chatRoom.id}`);
-
     }
 
     return chatRoom;
@@ -115,12 +108,14 @@ export class ChatService {
       relations: ['users', 'messages'],
     });
     if (!chatRoom) throw new NotFoundException("존재하지 않는 채팅방 입니다.");
+    
     const checkUser = chatRoom.users.findIndex((u) => u.id === userId);
     if (checkUser === -1) throw new NotFoundException("해당 사용자는 채팅방에 존재하지 않습니다.");
 
     chatRoom.users.splice(checkUser, 1);
     chatRoom.userCounts -= 1;
     await this.chatRoomRepository.save(chatRoom);
+
     client.leave(`room-${chatRoom.id}`);
 
     if (chatRoom.users.length === 0) await this.chatRoomRepository.remove(chatRoom);
@@ -128,14 +123,15 @@ export class ChatService {
 
   async saveMessage(sendMessageDto: SendMessageDto): Promise<Message> {
     const { chatRoomId, senderId, message } = sendMessageDto;
+
     const chatRoom = await this.chatRoomRepository.findOne({ where: { id: chatRoomId } });
     const sender = await this.userRepository.findOne({ where: { id: senderId } });
-
     const newMessage = this.messageRepository.create({ chatRoom, sender, content: message, createdAt: new Date() });
+
     return await this.messageRepository.save(newMessage);
   }
 
-  async reconnectChatRoom(reconnectChatRoomDto: LeaveChatRoomDto): Promise<any> {
+  async reconnectChatRoom(reconnectChatRoomDto: LeaveChatRoomDto): Promise<ChatRoom> {
     const { userId, chatRoomId } = reconnectChatRoomDto;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -152,7 +148,6 @@ export class ChatService {
 
     return chatRoom;
   }
-
 
   async getChatHistory(chatRoomId: number): Promise<Partial<Message>[]> {
     return this.messageRepository.createQueryBuilder('message')
@@ -173,6 +168,15 @@ export class ChatService {
     return users;
   }
 
+  async getLatestMessage(chatRoomId: number): Promise<Partial<Message>> {
+    return await this.messageRepository.createQueryBuilder('message')
+      .select(['message.senderId', 'message.content', 'message.createdAt'])
+      .where('message.chatRoomId = :chatRoomId', { chatRoomId })
+      .orderBy('message.createdAt', 'DESC')
+      .limit(1)
+      .getOne();
+  }
+
   async getChatRoomsForUser(id: number): Promise<any[]> {
     
     const chatRoom = await this.chatRoomRepository.createQueryBuilder('chatRoom')
@@ -186,32 +190,19 @@ export class ChatService {
     for (const room of chatRoom) {
       if (!room.id) continue;
       const latestMessageInfo = await this.getLatestMessage(room.id);
+
       if (!latestMessageInfo) continue;
       const usersInfo = await this.getUsersInChatRoom(room.id);
 
       chatRoomInfo.push({
         id: room.id,
         name: room.name,
-        latestMessage: {
-          senderId: latestMessageInfo.senderId,
-          content: latestMessageInfo.content,
-          createdAt: latestMessageInfo.createdAt
-        },
+        latestMessage: latestMessageInfo,
         usersInfo: usersInfo
-      })
+      });
     }
-
+    
     return chatRoomInfo;
-
   }
 
-  async getLatestMessage(chatRoomId: number): Promise<Partial<Message>> {
-    return await this.messageRepository.createQueryBuilder('message')
-      .select(['message.senderId', 'message.content', 'message.createdAt'])
-      .where('message.chatRoomId = :chatRoomId', { chatRoomId })
-      .orderBy('message.createdAt', 'DESC')
-      .limit(1)
-      .getOne();
-  }
-      
 }

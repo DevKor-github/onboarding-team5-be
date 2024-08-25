@@ -1,14 +1,9 @@
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Socket, Server } from 'socket.io';
-import { ChatRoom } from 'src/entities/chatRoom.entity';
-import { Repository } from 'typeorm';
-import { User } from 'src/entities/user.entity';
 import { CreateChatRoomDto } from './dtos/createChatRoom.dto';
 import { ChatService } from './chat.service';
 import { Docs } from 'src/decorators/docs/chat.decorator';
 import { SendMessageDto } from './dtos/sendMessage.dto';
-import { UserSocket } from 'src/entities/userSocket.entity';
 import { LeaveChatRoomDto } from './dtos/leaveChatRoom.dto';
 
 @WebSocketGateway()
@@ -17,17 +12,11 @@ export class ChatGateway {
   server: Server;
 
   constructor(
-    @InjectRepository(ChatRoom)
-    private chatRoomRepository: Repository<ChatRoom>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(UserSocket)
-    private userSocketRepository: Repository<UserSocket>,
     private readonly chatService: ChatService
   ) { }
 
-  afterInit(server: Server) {
-    this.server.emit("serverInit", { message: `server 시작` });
+  afterInit() {
+    this.server.emit("serverInit", { message: `서버 시작` });
     console.log("서버 시작")
   }
 
